@@ -38,10 +38,10 @@ add_definitions(
     -Wstrict-overflow=5
     -std=c++17
     -D_FILE_OFFSET_BITS=64
+    -DFUSE_USE_VERSION=26
 )
 
-add_executable(benchmarks benchmarks.cpp)
-target_link_libraries(benchmarks benchmark::benchmark SQLite::SQLite3)
-
+add_subdirectory(shared)
+add_subdirectory(benchmarks)
 add_subdirectory(fuse_frontend)
 add_subdirectory(tests)

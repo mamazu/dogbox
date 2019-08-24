@@ -1,93 +1,18 @@
-#define FUSE_USE_VERSION 26
-
+#include "directory.h"
+#include "overloaded.h"
+#include "to_do.h"
 #include <cassert>
 #include <cstdio>
 #include <cstring>
 #include <errno.h>
 #include <fcntl.h>
-#include <filesystem>
-#include <fstream>
 #include <functional>
 #include <fuse.h>
 #include <iostream>
-#include <map>
 #include <mutex>
-#include <variant>
 
-#define TO_DO() throw std::logic_error("TO_DO")
-
-namespace
+namespace dogbox
 {
-    struct regular_file
-    {
-        std::vector<std::byte> content;
-    };
-
-    struct directory_entry;
-
-    struct directory
-    {
-        std::map<std::string, directory_entry> entries;
-    };
-
-    struct directory_entry
-    {
-        std::variant<regular_file, directory> content;
-    };
-
-    regular_file scan_regular_file(std::filesystem::path const &input)
-    {
-        std::ifstream file(input.string(), std::ios::binary);
-        if (!file)
-        {
-            TO_DO();
-        }
-        auto const at_beginning = file.tellg();
-        file.seekg(0, std::ios::end);
-        auto const at_end = file.tellg();
-        file.seekg(0, std::ios::beg);
-        auto const size = (at_end - at_beginning);
-        std::vector<std::byte> content(static_cast<size_t>(size));
-        file.read(reinterpret_cast<char *>(content.data()), size);
-        if (!file)
-        {
-            TO_DO();
-        }
-        return regular_file{std::move(content)};
-    }
-
-    directory scan_directory(std::filesystem::path const &input)
-    {
-        std::map<std::string, directory_entry> entries;
-        std::filesystem::directory_iterator i(input);
-        for (; i != std::filesystem::directory_iterator(); ++i)
-        {
-            auto entry_path = i->path();
-            auto entry_name = entry_path.filename();
-            switch (i->status().type())
-            {
-            case std::filesystem::file_type::regular:
-                entries.insert(std::make_pair(entry_name, directory_entry{{scan_regular_file(entry_path)}}));
-                break;
-
-            case std::filesystem::file_type::directory:
-                entries.insert(std::make_pair(entry_name, directory_entry{{scan_directory(entry_path)}}));
-                break;
-
-            case std::filesystem::file_type::none:
-            case std::filesystem::file_type::not_found:
-            case std::filesystem::file_type::symlink:
-            case std::filesystem::file_type::block:
-            case std::filesystem::file_type::character:
-            case std::filesystem::file_type::fifo:
-            case std::filesystem::file_type::socket:
-            case std::filesystem::file_type::unknown:
-                break;
-            }
-        }
-        return directory{std::move(entries)};
-    }
-
     struct our_fuse_user_data
     {
         std::filesystem::path input_dir;
@@ -104,15 +29,6 @@ namespace
             return *tree;
         }
     };
-
-    template <class... Ts>
-    struct overloaded : Ts...
-    {
-        using Ts::operator()...;
-    };
-
-    template <class... Ts>
-    overloaded(Ts...)->overloaded<Ts...>;
 
     struct path_split_result
     {
@@ -304,10 +220,10 @@ int main(int argc, char *argv[])
     }
     std::filesystem::path const input_dir = argv[1];
     struct fuse_operations hello_oper = {};
-    hello_oper.getattr = hello_getattr;
-    hello_oper.readdir = hello_readdir;
-    hello_oper.open = hello_open;
-    hello_oper.read = hello_read;
-    our_fuse_user_data user_data{input_dir, std::nullopt, {}};
+    hello_oper.getattr = dogbox::hello_getattr;
+    hello_oper.readdir = dogbox::hello_readdir;
+    hello_oper.open = dogbox::hello_open;
+    hello_oper.read = dogbox::hello_read;
+    dogbox::our_fuse_user_data user_data{input_dir, std::nullopt, {}};
     return fuse_main(argc - 1, argv + 1, &hello_oper, &user_data);
 }
