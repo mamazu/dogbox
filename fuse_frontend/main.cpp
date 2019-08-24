@@ -11,6 +11,7 @@
 #include <fuse.h>
 #include <iostream>
 #include <map>
+#include <mutex>
 #include <variant>
 
 #define TO_DO() throw std::logic_error("TO_DO")
@@ -89,7 +90,19 @@ namespace
 
     struct our_fuse_user_data
     {
-        directory tree;
+        std::filesystem::path input_dir;
+        std::optional<directory> tree;
+        std::mutex mutex;
+
+        directory &require_tree()
+        {
+            std::scoped_lock<std::mutex> lock(mutex);
+            if (!tree)
+            {
+                tree = scan_directory(input_dir);
+            }
+            return *tree;
+        }
     };
 
     template <class... Ts>
@@ -162,7 +175,7 @@ namespace
         memset(stbuf, 0, sizeof(*stbuf));
         fuse_context *const fuse = fuse_get_context();
         our_fuse_user_data *const data = static_cast<our_fuse_user_data *>(fuse->private_data);
-        directory &current_root = data->tree;
+        directory &current_root = data->require_tree();
         assert(request_path[0] == '/');
         std::filesystem::path request_path_parsed = request_path + 1;
         if (auto result = getattr_impl(request_path_parsed, current_root); result)
@@ -214,7 +227,7 @@ namespace
         (void)fi;
         fuse_context *const fuse = fuse_get_context();
         our_fuse_user_data *const data = static_cast<our_fuse_user_data *>(fuse->private_data);
-        directory &current_root = data->tree;
+        directory &current_root = data->require_tree();
         assert(request_path[0] == '/');
         std::filesystem::path request_path_parsed = request_path + 1;
         return readdir_impl(request_path_parsed, current_root,
@@ -263,7 +276,7 @@ namespace
     {
         fuse_context *const fuse = fuse_get_context();
         our_fuse_user_data *const data = static_cast<our_fuse_user_data *>(fuse->private_data);
-        directory &current_root = data->tree;
+        directory &current_root = data->require_tree();
         assert(request_path[0] == '/');
         std::filesystem::path request_path_parsed = request_path + 1;
         open_result const result = open_impl(request_path_parsed, current_root, fi->flags);
@@ -294,12 +307,11 @@ int main(int argc, char *argv[])
         return 1;
     }
     std::filesystem::path const input_dir = argv[1];
-    directory const scanned = scan_directory(input_dir);
     struct fuse_operations hello_oper = {};
     hello_oper.getattr = hello_getattr;
     hello_oper.readdir = hello_readdir;
     hello_oper.open = hello_open;
     hello_oper.read = hello_read;
-    our_fuse_user_data user_data{std::move(scanned)};
+    our_fuse_user_data user_data{input_dir, std::nullopt, {}};
     return fuse_main(argc - 1, argv + 1, &hello_oper, &user_data);
 }
