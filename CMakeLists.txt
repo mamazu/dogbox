@@ -13,6 +13,8 @@ find_package(Boost COMPONENTS system unit_test_framework REQUIRED)
 set(benchmark_ROOT_DIR ${DEPENDENCIES_INSTALL_DIR})
 find_package(benchmark REQUIRED)
 
+find_library(FUSE_LIB fuse)
+
 add_definitions(
     -Wall
     -Wextra
@@ -35,9 +37,11 @@ add_definitions(
     -Wuninitialized
     -Wstrict-overflow=5
     -std=c++17
+    -D_FILE_OFFSET_BITS=64
 )
 
 add_executable(benchmarks benchmarks.cpp)
 target_link_libraries(benchmarks benchmark::benchmark SQLite::SQLite3)
 
+add_subdirectory(fuse_frontend)
 add_subdirectory(tests)
