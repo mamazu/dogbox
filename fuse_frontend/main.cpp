@@ -122,18 +122,14 @@ namespace
 
     path_split_result split_path(std::filesystem::path const &original)
     {
-        auto i = original.begin();
-        if (i == original.end())
+        auto const &original_string = original.string();
+        auto const slash = std::find(original_string.begin(), original_string.end(), '/');
+        if (slash == original_string.end())
         {
-            return path_split_result{"", ""};
+            return path_split_result{original_string, ""};
         }
-        auto head = *i;
-        ++i;
-        if (i == original.end())
-        {
-            return path_split_result{std::move(head), ""};
-        }
-        return path_split_result{std::move(head), *i};
+        return path_split_result{std::filesystem::path(original_string.begin(), slash),
+                                 std::filesystem::path(slash + 1, original_string.end())};
     }
 
     std::optional<struct stat> getattr_impl(std::filesystem::path const request_path_parsed,
