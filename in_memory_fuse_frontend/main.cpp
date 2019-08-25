@@ -206,7 +206,7 @@ namespace dogbox
             offset = static_cast<off_t>(content.size());
         }
         size_t const actual_read_size = (std::min<size_t>)(size, (content.size() - static_cast<size_t>(offset)));
-        std::memcpy(buf, content.data() + static_cast<ptrdiff_t>(offset), actual_read_size);
+        std::memcpy(buf, content.data() + offset, actual_read_size);
         return static_cast<int>(actual_read_size);
     }
 }
