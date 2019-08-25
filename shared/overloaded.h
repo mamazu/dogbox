@@ -1,3 +1,5 @@
+#pragma once
+
 namespace dogbox
 {
     template <class... Ts>

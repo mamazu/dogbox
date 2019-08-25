@@ -4,6 +4,24 @@
 
 namespace dogbox
 {
+    std::ostream &operator<<(std::ostream &out, directory const &printed)
+    {
+        out << "Directory of " << printed.entries.size() << " entries: [\n";
+        for (auto const &entry : printed.entries)
+        {
+            out << entry.first << " = " << entry.second << '\n';
+        }
+        return out << "]";
+    }
+
+    std::ostream &operator<<(std::ostream &out, directory_entry const &printed)
+    {
+        std::visit(overloaded{[&](regular_file const &regular) { out << regular; },
+                              [&](directory const &subdirectory) { out << subdirectory; }},
+                   printed.content);
+        return out;
+    }
+
     regular_file scan_regular_file(std::filesystem::path const &input)
     {
         std::ifstream file(input.string(), std::ios::binary);
