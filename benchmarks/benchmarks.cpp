@@ -9,6 +9,6 @@ static void benchmark_scan_directory(benchmark::State &state)
     }
 }
 
-BENCHMARK(benchmark_scan_directory);
+BENCHMARK(benchmark_scan_directory)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_MAIN();
