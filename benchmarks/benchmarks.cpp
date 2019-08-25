@@ -1,3 +1,5 @@
+#include "common/create_random_file.h"
+#include "common/directory_auto_deleter.h"
 #include "common/to_do.h"
 #include "in_memory_fuse_frontend_shared/directory.h"
 #include "trees/import.h"
@@ -46,31 +48,20 @@ static void benchmark_sha256(benchmark::State &state)
     state.SetBytesProcessed(state.iterations() * blob.size());
 }
 
-BENCHMARK(benchmark_sha256)->Unit(benchmark::kMillisecond)->Range(0, 1024 * 1024 * 10);
+BENCHMARK(benchmark_sha256)->Unit(benchmark::kMillisecond)->Range(1024 * 1024, 1024 * 1024 * 10);
 
-struct directory_auto_deleter
-{
-    std::filesystem::path deleting;
-
-    ~directory_auto_deleter()
-    {
-        std::filesystem::remove_all(deleting);
-    }
-};
-
-static void benchmark_import_directory(benchmark::State &state)
+static void benchmark_import_directory(benchmark::State &state, dogbox::import::parallelism const parallel)
 {
     using random_bytes_engine = std::independent_bits_engine<std::mt19937, 8, unsigned char>;
     random_bytes_engine random;
     std::filesystem::path const imported_dir =
         std::filesystem::path("/tmp") / std::to_string(std::uniform_int_distribution<uint64_t>()(random));
-    directory_auto_deleter const imported_dir_deleter{imported_dir};
+    dogbox::directory_auto_deleter const imported_dir_deleter{imported_dir};
     std::filesystem::create_directory(imported_dir);
     size_t total_file_size = 0;
-    for (size_t i = 0; i < static_cast<size_t>(state.range(0)); ++i)
     {
-        std::ofstream file((imported_dir / std::to_string(i)).string(), std::ios::binary);
-        size_t const file_size = 777ull * (1 << i);
+        std::ofstream file((imported_dir / "regular_file").string(), std::ios::binary);
+        size_t const file_size = static_cast<size_t>(state.range(0));
         total_file_size += file_size;
         std::generate_n(std::ostreambuf_iterator<char>(file), file_size, std::ref(random));
         if (!file)
@@ -82,11 +73,36 @@ static void benchmark_import_directory(benchmark::State &state)
     {
         dogbox::sqlite_handle const database = dogbox::open_sqlite(":memory:");
         dogbox::initialize_blob_storage(*database);
-        dogbox::import::from_filesystem_directory(*database, imported_dir);
+        dogbox::import::from_filesystem_directory(*database, imported_dir, parallel);
     }
     state.SetBytesProcessed(state.iterations() * total_file_size);
 }
 
-BENCHMARK(benchmark_import_directory)->Unit(benchmark::kMillisecond)->DenseRange(11, 17);
+static void benchmark_import_directory_sequential(benchmark::State &state)
+{
+    benchmark_import_directory(state, dogbox::import::parallelism::none);
+}
+
+static void benchmark_import_directory_parallel(benchmark::State &state)
+{
+    benchmark_import_directory(state, dogbox::import::parallelism::full);
+}
+
+BENCHMARK(benchmark_import_directory_sequential)->Unit(benchmark::kMillisecond)->Range(100 * 1000, 150 * 1000 * 1000);
+BENCHMARK(benchmark_import_directory_parallel)->Unit(benchmark::kMillisecond)->Range(100 * 1000, 150 * 1000 * 1000);
+
+static void benchmark_create_random_file(benchmark::State &state)
+{
+    uint64_t const size = state.range(0);
+    std::filesystem::path const file = "/tmp/dogbox_benchmark_random_file";
+    for (auto _ : state)
+    {
+        dogbox::create_random_file(file, size);
+        std::filesystem::remove(file);
+    }
+    state.SetBytesProcessed(state.iterations() * size);
+}
+
+BENCHMARK(benchmark_create_random_file)->Unit(benchmark::kMillisecond)->Range(100 * 1024, 10 * 1024 * 1024);
 
 BENCHMARK_MAIN();

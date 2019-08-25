@@ -1,12 +1,29 @@
 #include "import.h"
+#include "common/file_descriptor.h"
 #include "common/to_do.h"
 #include "directory.h"
 #include "regular_file.h"
+#include <boost/range/irange.hpp>
 #include <fstream>
+#include <future>
+#include <thread>
 
 namespace dogbox::import
 {
-    blob_hash_code from_filesystem_directory(sqlite3 &database, std::filesystem::path const &root)
+    std::ostream &operator<<(std::ostream &out, parallelism const printed)
+    {
+        switch (printed)
+        {
+        case parallelism::full:
+            return out << "full";
+        case parallelism::none:
+            return out << "none";
+        }
+        return out << "???";
+    }
+
+    blob_hash_code from_filesystem_directory(sqlite3 &database, std::filesystem::path const &root,
+                                             parallelism const parallel)
     {
         // TODO: sort entries (for example by name)
         std::vector<std::byte> encoded;
@@ -19,7 +36,7 @@ namespace dogbox::import
             {
             case std::filesystem::file_type::regular:
             {
-                blob_hash_code const regular = from_filesystem_regular_file(database, entry_path);
+                blob_hash_code const regular = from_filesystem_regular_file(database, entry_path, parallel);
                 tree::encode_entry(
                     tree::entry_type::regular_file, entry_name.string(), regular, std::back_inserter(encoded));
                 break;
@@ -27,7 +44,7 @@ namespace dogbox::import
 
             case std::filesystem::file_type::directory:
             {
-                blob_hash_code const subdirectory = from_filesystem_directory(database, entry_path);
+                blob_hash_code const subdirectory = from_filesystem_directory(database, entry_path, parallel);
                 tree::encode_entry(
                     tree::entry_type::directory, entry_name.string(), subdirectory, std::back_inserter(encoded));
                 break;
@@ -48,38 +65,90 @@ namespace dogbox::import
         return store_blob(database, encoded.data(), encoded.size());
     }
 
-    blob_hash_code from_filesystem_regular_file(sqlite3 &database, std::filesystem::path const &input)
+    namespace
     {
-        std::ifstream file(input.string(), std::ios::binary);
-        if (!file)
+        template <class Unsigned, class Action>
+        void parallel_for(Unsigned begin, Unsigned count, size_t const max_paralellism, Action &&action)
+        {
+            assert(max_paralellism >= 1);
+            if (count == 0)
+            {
+                return;
+            }
+            size_t const actual_parallelism = std::min(max_paralellism, count);
+            assert(actual_parallelism >= 1);
+            size_t const worker_count = actual_parallelism - 1;
+            std::vector<std::future<void>> workers(worker_count);
+            for (size_t i = 0; i < worker_count; ++i)
+            {
+                workers[i] = std::async(std::launch::async, [begin, i, action, count, actual_parallelism]() {
+                    for (Unsigned k = i; k < count; k += actual_parallelism)
+                    {
+                        action(begin + k);
+                    }
+                });
+            }
+            for (Unsigned k = worker_count; k < count; k += actual_parallelism)
+            {
+                action(begin + k);
+            }
+            for (auto &worker : workers)
+            {
+                worker.get();
+            }
+        }
+    }
+
+    blob_hash_code from_filesystem_regular_file(sqlite3 &database, std::filesystem::path const &input,
+                                                parallelism const parallel)
+    {
+        file_descriptor const file = open_file_for_reading(input).value();
+        off_t const size_result = lseek64(file.handle, 0, SEEK_END);
+        if (size_result < 0)
         {
             TO_DO();
         }
-        auto const at_beginning = file.tellg();
-        file.seekg(0, std::ios::end);
-        auto const at_end = file.tellg();
-        file.seekg(0, std::ios::beg);
-        auto const size = static_cast<uint64_t>(at_end - at_beginning);
+        uint64_t const size = static_cast<uint64_t>(size_result);
+        if (lseek64(file.handle, 0, SEEK_SET) < 0)
+        {
+            TO_DO();
+        }
         std::vector<std::byte> encoded;
         regular_file::start_encoding(size, std::back_inserter(encoded));
-        uint64_t remaining_size = size;
-        std::vector<std::byte> piece_buffer(regular_file::piece_length);
-        while (remaining_size >= piece_buffer.size())
+        size_t const number_of_pieces = (size / regular_file::piece_length);
+        uint64_t const remaining_size = (size - (number_of_pieces * regular_file::piece_length));
+        size_t concurrency = std::thread::hardware_concurrency();
+        switch (parallel)
         {
-            file.read(reinterpret_cast<char *>(piece_buffer.data()), piece_buffer.size());
-            if (!file)
+        case parallelism::full:
+            break;
+
+        case parallelism::none:
+            concurrency = 1;
+            break;
+        }
+        {
+            std::vector<blob_hash_code> hash_codes(number_of_pieces);
+            std::mutex database_mutex;
+            parallel_for<size_t>(0, number_of_pieces, (number_of_pieces >= (concurrency * 2)) ? concurrency : 1,
+                                 [&](size_t const index) {
+                                     std::vector<std::byte> piece_buffer(regular_file::piece_length);
+                                     read_at(file.handle, (index * regular_file::piece_length), piece_buffer.data(),
+                                             piece_buffer.size());
+                                     blob_hash_code const piece_hash_code = [&]() {
+                                         std::scoped_lock<std::mutex> lock(database_mutex);
+                                         return store_blob(database, piece_buffer.data(), piece_buffer.size());
+                                     }();
+                                     hash_codes[index] = piece_hash_code;
+                                 });
+            for (auto const piece_hash_code : hash_codes)
             {
-                TO_DO();
+                regular_file::encode_piece(piece_hash_code, std::back_inserter(encoded));
             }
-            auto const piece_hash_code = store_blob(database, piece_buffer.data(), piece_buffer.size());
-            regular_file::encode_piece(piece_hash_code, std::back_inserter(encoded));
-            remaining_size -= piece_buffer.size();
         }
-        file.read(reinterpret_cast<char *>(piece_buffer.data()), remaining_size);
-        if (!file)
-        {
-            TO_DO();
-        }
+
+        std::vector<std::byte> piece_buffer(remaining_size);
+        read_at(file.handle, number_of_pieces * regular_file::piece_length, piece_buffer.data(), piece_buffer.size());
         regular_file::finish_encoding(piece_buffer.data(), remaining_size, std::back_inserter(encoded));
         return store_blob(database, encoded.data(), encoded.size());
     }
