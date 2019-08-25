@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <optional>
 #include <ostream>
 
 namespace dogbox
@@ -40,4 +41,5 @@ namespace dogbox
 
     sha256_hash_code sha256(std::byte const *const data, size_t const size);
     std::string to_string(sha256_hash_code const &hash_code);
+    std::optional<sha256_hash_code> parse_sha256_hash_code(std::string_view const input);
 }

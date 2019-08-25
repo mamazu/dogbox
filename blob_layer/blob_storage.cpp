@@ -61,6 +61,10 @@ namespace dogbox
     blob_hash_code store_blob(sqlite3 &database, std::byte const *const data, size_t const size)
     {
         blob_hash_code const hash_code = sha256(data, size);
+        if (load_blob(database, hash_code))
+        {
+            return hash_code;
+        }
         sqlite_statement_handle const statement =
             prepare(database, "INSERT INTO `blob` (hash_code, content) VALUES (?, ?)");
         std::string const hash_code_string = to_string(hash_code);
@@ -98,6 +102,24 @@ namespace dogbox
 
         case SQLITE_DONE:
             return std::nullopt;
+
+        default:
+            throw_sqlite_error(database, return_code);
+        }
+    }
+
+    uint64_t count_blobs(sqlite3 &database)
+    {
+        sqlite_statement_handle const statement = prepare(database, "SELECT COUNT(*) FROM `blob`");
+        int const return_code = sqlite3_step(statement.get());
+        switch (return_code)
+        {
+        case SQLITE_ROW:
+        {
+            sqlite3_int64 const count = sqlite3_column_int64(statement.get(), 0);
+            assert(count >= 0);
+            return static_cast<uint64_t>(count);
+        }
 
         default:
             throw_sqlite_error(database, return_code);
