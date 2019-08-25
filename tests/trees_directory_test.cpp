@@ -1,5 +1,5 @@
 #include "common/byte_literal.h"
-#include "trees/trees.h"
+#include "trees/directory.h"
 #include <algorithm>
 #include <boost/test/unit_test.hpp>
 
