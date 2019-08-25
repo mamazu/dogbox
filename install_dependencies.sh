@@ -11,7 +11,7 @@ SQLITE3_VERSION=3290000
 CMAKE_VERSION=3.15.2
 GSL_VERSION=b576cc6ce375cf42f6537d65a9ef29d67aa6b78e
 
-sudo apt install ninja-build g++ tar git wget clang-format-3.9 cmake libfuse-dev || exit 1
+sudo apt install ninja-build g++ tar git wget clang-format-3.9 cmake libfuse-dev libssl-dev || exit 1
 mkdir -p $DEPENDENCIES_DIR || exit 1
 cd $DEPENDENCIES_DIR || exit 1
 
