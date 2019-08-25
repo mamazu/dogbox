@@ -1,0 +1,2 @@
+add_executable(in_memory_fuse_frontend main.cpp)
+target_link_libraries(in_memory_fuse_frontend in_memory_fuse_frontend_shared ${FUSE_LIB})

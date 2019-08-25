@@ -41,7 +41,9 @@ add_definitions(
     -DFUSE_USE_VERSION=26
 )
 
-add_subdirectory(shared)
+include_directories(.)
+
+add_subdirectory(in_memory_fuse_frontend_shared)
 add_subdirectory(benchmarks)
-add_subdirectory(fuse_frontend)
+add_subdirectory(in_memory_fuse_frontend)
 add_subdirectory(tests)

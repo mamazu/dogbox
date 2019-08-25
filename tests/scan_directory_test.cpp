@@ -1,4 +1,4 @@
-#include "directory.h"
+#include "in_memory_fuse_frontend_shared/directory.h"
 #include <boost/test/unit_test.hpp>
 
 namespace

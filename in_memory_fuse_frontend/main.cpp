@@ -1,6 +1,6 @@
-#include "directory.h"
-#include "overloaded.h"
-#include "to_do.h"
+#include "in_memory_fuse_frontend_shared/directory.h"
+#include "common/overloaded.h"
+#include "common/to_do.h"
 #include <cassert>
 #include <cstdio>
 #include <cstring>

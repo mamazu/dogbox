@@ -5,7 +5,7 @@ fusermount -u ./fuse_mount
 rmdir fuse_mount
 mkdir -p fuse_mount || exit 1
 TEST_DIRECTORY=$SOURCE/tests/test_directories/nested
-./fuse_frontend/fuse_frontend $TEST_DIRECTORY -f ./fuse_mount &
+./in_memory_fuse_frontend/in_memory_fuse_frontend $TEST_DIRECTORY -f ./fuse_mount &
 sleep 1s
 FUSE_FRONTEND_PID=$!
 diff -r $TEST_DIRECTORY ./fuse_mount
