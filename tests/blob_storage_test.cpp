@@ -1,4 +1,5 @@
 #include "blob_layer/blob_storage.h"
+#include "common/byte_literal.h"
 #include <algorithm>
 #include <boost/test/unit_test.hpp>
 
@@ -20,15 +21,6 @@ namespace
         sqlite3_open(name, &database);
         return sqlite_handle(database);
     }
-
-    inline namespace literals
-    {
-        constexpr std::byte operator"" _b(unsigned long long value)
-        {
-            assert(value < 256);
-            return static_cast<std::byte>(value);
-        }
-    }
 }
 
 BOOST_AUTO_TEST_CASE(initialize_blob_storage)
@@ -48,7 +40,7 @@ BOOST_AUTO_TEST_CASE(store_blob)
 {
     sqlite_handle const database = open_sqlite(":memory:");
     dogbox::initialize_blob_storage(*database);
-    using namespace literals;
+    using namespace dogbox::literals;
     std::array<std::byte, 5> const test_blob = {1_b, 2_b, 3_b, 99_b, 255_b};
     dogbox::sha256_hash_code const hash = dogbox::store_blob(*database, test_blob.data(), test_blob.size());
     std::optional<std::vector<std::byte>> const loaded = dogbox::load_blob(*database, hash);
@@ -62,7 +54,7 @@ BOOST_AUTO_TEST_CASE(store_blob_again)
 {
     sqlite_handle const database = open_sqlite(":memory:");
     dogbox::initialize_blob_storage(*database);
-    using namespace literals;
+    using namespace dogbox::literals;
     std::array<std::byte, 5> const test_blob = {1_b, 2_b, 3_b, 99_b, 255_b};
     dogbox::sha256_hash_code const hash_0 = dogbox::store_blob(*database, test_blob.data(), test_blob.size());
     boost::ignore_unused(hash_0);

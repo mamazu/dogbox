@@ -2,6 +2,7 @@
 
 #include "hash_code.h"
 #include "sqlite3.h"
+#include <cassert>
 #include <optional>
 #include <vector>
 

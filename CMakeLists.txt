@@ -47,6 +47,7 @@ add_definitions(
 include_directories(.)
 
 add_subdirectory(blob_layer)
+add_subdirectory(trees)
 add_subdirectory(in_memory_fuse_frontend_shared)
 add_subdirectory(benchmarks)
 add_subdirectory(in_memory_fuse_frontend)
