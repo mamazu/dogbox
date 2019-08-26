@@ -1,7 +1,9 @@
 #pragma once
 
+#include "blob_layer/blob_storage.h"
 #include <filesystem>
 #include <fuse.h>
+#include <sqlite3.h>
 
 namespace dogbox::fuse
 {
@@ -56,6 +58,8 @@ namespace dogbox::fuse
 
     struct user_data
     {
+        sqlite3 &database;
+        blob_hash_code root;
     };
 
     fuse_operations make_operations() noexcept;

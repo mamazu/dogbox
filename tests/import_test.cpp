@@ -43,13 +43,13 @@ BOOST_DATA_TEST_CASE(import_from_filesystem_directory_small, all_parallelism_mod
     dogbox::sqlite_handle const database = dogbox::open_sqlite(":memory:");
     dogbox::initialize_blob_storage(*database);
     BOOST_TEST(dogbox::count_blobs(*database) == 0);
-    dogbox::sha256_hash_code const test_txt_hash_code =
+    dogbox::sha256_hash_code const directory_hash_code =
         dogbox::import::from_filesystem_directory(*database, find_test_directories() / "nested", parallel);
     BOOST_TEST(
         dogbox::parse_sha256_hash_code("ca9d81f5e465244e7df9adb5b99d3302e38f32d496640dde1577a274eec5800d").value() ==
-        test_txt_hash_code);
+        directory_hash_code);
     BOOST_TEST(dogbox::count_blobs(*database) == 6);
-    std::optional<std::vector<std::byte>> const content = dogbox::load_blob(*database, test_txt_hash_code);
+    std::optional<std::vector<std::byte>> const content = dogbox::load_blob(*database, directory_hash_code);
     BOOST_REQUIRE(content);
     // TODO check whether content is correct
 }

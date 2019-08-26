@@ -9,7 +9,8 @@ namespace dogbox::regular_file
         std::optional<std::tuple<Unsigned, std::byte const *>> decode_big_endian_integer(std::byte const *in,
                                                                                          std::byte const *end)
         {
-            if (sizeof(Unsigned) > static_cast<size_t>(std::distance(in, end)))
+            size_t const input_size = static_cast<size_t>(std::distance(in, end));
+            if (sizeof(Unsigned) > input_size)
             {
                 return std::nullopt;
             }

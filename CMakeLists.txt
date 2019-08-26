@@ -8,7 +8,7 @@ find_package(SQLite3 REQUIRED)
 
 set(BOOST_ROOT ${DEPENDENCIES_INSTALL_DIR})
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost COMPONENTS system unit_test_framework REQUIRED)
+find_package(Boost COMPONENTS system unit_test_framework filesystem REQUIRED)
 
 set(benchmark_ROOT_DIR ${DEPENDENCIES_INSTALL_DIR})
 find_package(benchmark REQUIRED)
