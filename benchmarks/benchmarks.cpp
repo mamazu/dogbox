@@ -58,11 +58,12 @@ static void benchmark_import_directory(benchmark::State &state, dogbox::import::
         std::filesystem::path("/tmp") / std::to_string(std::uniform_int_distribution<uint64_t>()(random));
     dogbox::directory_auto_deleter const imported_dir_deleter{imported_dir};
     std::filesystem::create_directory(imported_dir);
-    size_t total_file_size = 0;
+    size_t const total_file_size = 200 * 1000 * 1000;
+    size_t const number_of_files = state.range(0);
+    size_t const file_size = (total_file_size / number_of_files);
+    for (size_t i = 0; i < number_of_files; ++i)
     {
-        size_t const file_size = static_cast<size_t>(state.range(0));
-        dogbox::create_random_file((imported_dir / "regular_file"), file_size);
-        total_file_size += file_size;
+        dogbox::create_random_file((imported_dir / std::to_string(i)), file_size);
     }
     for (auto _ : state)
     {
@@ -83,8 +84,8 @@ static void benchmark_import_directory_parallel(benchmark::State &state)
     benchmark_import_directory(state, dogbox::import::parallelism::full);
 }
 
-BENCHMARK(benchmark_import_directory_sequential)->Unit(benchmark::kMillisecond)->Range(100 * 1000, 150 * 1000 * 1000);
-BENCHMARK(benchmark_import_directory_parallel)->Unit(benchmark::kMillisecond)->Range(100 * 1000, 150 * 1000 * 1000);
+BENCHMARK(benchmark_import_directory_sequential)->Unit(benchmark::kMillisecond)->Range(1, 20000);
+BENCHMARK(benchmark_import_directory_parallel)->Unit(benchmark::kMillisecond)->Range(1, 20000);
 
 static void benchmark_create_random_file(benchmark::State &state)
 {
