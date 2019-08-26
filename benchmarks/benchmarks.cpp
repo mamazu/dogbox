@@ -60,14 +60,9 @@ static void benchmark_import_directory(benchmark::State &state, dogbox::import::
     std::filesystem::create_directory(imported_dir);
     size_t total_file_size = 0;
     {
-        std::ofstream file((imported_dir / "regular_file").string(), std::ios::binary);
         size_t const file_size = static_cast<size_t>(state.range(0));
+        dogbox::create_random_file((imported_dir / "regular_file"), file_size);
         total_file_size += file_size;
-        std::generate_n(std::ostreambuf_iterator<char>(file), file_size, std::ref(random));
-        if (!file)
-        {
-            TO_DO();
-        }
     }
     for (auto _ : state)
     {
