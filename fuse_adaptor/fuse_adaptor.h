@@ -56,10 +56,23 @@ namespace dogbox::fuse
         }
     };
 
+    struct regular_file_index
+    {
+        std::vector<blob_hash_code> pieces;
+        std::vector<std::byte> tail;
+    };
+
+    struct open_file
+    {
+        blob_hash_code hash_code;
+        std::optional<regular_file_index> index;
+    };
+
     struct user_data
     {
         sqlite3 &database;
         blob_hash_code root;
+        std::vector<std::optional<open_file>> files;
     };
 
     fuse_operations make_operations() noexcept;

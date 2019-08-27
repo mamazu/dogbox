@@ -172,18 +172,6 @@ namespace dogbox::fuse
             TO_DO();
         }
 
-        struct regular_file_index
-        {
-            std::vector<blob_hash_code> pieces;
-            std::vector<std::byte> tail;
-        };
-
-        struct open_file
-        {
-            blob_hash_code hash_code;
-            std::optional<regular_file_index> index;
-        };
-
         int adaptor_open(const char *request_path, struct fuse_file_info *file)
         {
             fuse_context &fuse = *fuse_get_context();
@@ -199,7 +187,18 @@ namespace dogbox::fuse
                 return -EISDIR;
 
             case tree::entry_type::regular_file:
-                file->fh = reinterpret_cast<unsigned long>(new open_file{resolved->hash_code, std::nullopt});
+                for (size_t i = 0; i < user.files.size(); ++i)
+                {
+                    auto &entry = user.files[i];
+                    if (!entry)
+                    {
+                        entry = open_file{resolved->hash_code, std::nullopt};
+                        file->fh = i;
+                        return 0;
+                    }
+                }
+                file->fh = user.files.size();
+                user.files.emplace_back(open_file{resolved->hash_code, std::nullopt});
                 return 0;
             }
             TO_DO();
@@ -208,7 +207,9 @@ namespace dogbox::fuse
         int adaptor_release(const char *request_path, struct fuse_file_info *file)
         {
             (void)request_path;
-            delete reinterpret_cast<open_file *>(file->fh);
+            fuse_context &fuse = *fuse_get_context();
+            user_data &user = *static_cast<user_data *>(fuse.private_data);
+            user.files[file->fh] = std::nullopt;
             return 0;
         }
 
@@ -254,9 +255,10 @@ namespace dogbox::fuse
                          struct fuse_file_info *const file)
         {
             (void)request_path;
-            open_file &opened = *reinterpret_cast<open_file *>(file->fh);
             fuse_context &fuse = *fuse_get_context();
             user_data &user = *static_cast<user_data *>(fuse.private_data);
+            assert(file->fh < user.files.size());
+            open_file &opened = *user.files[file->fh];
             if (!opened.index)
             {
                 opened.index = load_regular_file_index(user.database, opened.hash_code);

@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(fuse_adaptor)
     std::filesystem::path const input_directory = find_test_directories() / "nested";
     dogbox::sha256_hash_code const directory_hash_code =
         dogbox::import::from_filesystem_directory(*database, input_directory, dogbox::import::parallelism::full);
-    dogbox::fuse::user_data user_data{*database, directory_hash_code};
+    dogbox::fuse::user_data user_data{*database, directory_hash_code, {}};
     fuse_handle.reset(fuse_new(channel.handle, &arguments, &operations, sizeof(operations), &user_data));
     BOOST_REQUIRE(fuse_handle);
 
