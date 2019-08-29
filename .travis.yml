@@ -1,0 +1,19 @@
+language: cpp
+
+compiler: gcc
+
+install: ./install_dependencies.sh ..
+
+addons:
+  apt:
+    packages:
+      - cmake
+
+cache:
+  directories:
+    - '../dogbox_dependencies'
+
+script:
+  - '../dogbox_dependencies/install/bin/cmake --version'
+  - '../dogbox_dependencies/install/bin/cmake -G "CodeBlocks - Unix Makefiles" .'
+  - '../dogbox_dependencies/install/bin/cmake --build .'

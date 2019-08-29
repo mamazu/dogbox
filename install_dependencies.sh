@@ -47,7 +47,7 @@ popd || exit 1
 # SQLite3
 if [[ ! -d sqlite-autoconf-$SQLITE3_VERSION ]]; then
     wget https://www.sqlite.org/2019/sqlite-autoconf-$SQLITE3_VERSION.tar.gz || exit 1
-    tar zxvf sqlite-autoconf-$SQLITE3_VERSION.tar.gz || exit 1
+    tar zxf sqlite-autoconf-$SQLITE3_VERSION.tar.gz || exit 1
 fi
 pushd sqlite-autoconf-$SQLITE3_VERSION || exit 1
 ./configure --prefix=$INSTALL_PREFIX --enable-static || exit 1
@@ -73,7 +73,7 @@ popd || exit 1
 # CMake
 if [[ ! -d cmake-$CMAKE_VERSION ]]; then
     wget https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION.tar.gz || exit 1
-    tar zxvf cmake-$CMAKE_VERSION.tar.gz || exit 1
+    tar zxf cmake-$CMAKE_VERSION.tar.gz || exit 1
 fi
 pushd cmake-$CMAKE_VERSION || exit 1
 ./bootstrap --prefix=$INSTALL_PREFIX || exit 1
