@@ -209,7 +209,7 @@ namespace dogbox::fuse
             (void)request_path;
             fuse_context &fuse = *fuse_get_context();
             user_data &user = *static_cast<user_data *>(fuse.private_data);
-            user.files[file->fh] = std::nullopt;
+            user.files[static_cast<size_t>(file->fh)] = std::nullopt;
             return 0;
         }
 
@@ -229,7 +229,8 @@ namespace dogbox::fuse
                 TO_DO();
             }
             regular_file::length_type const file_size = std::get<0>(*header);
-            std::vector<blob_hash_code> pieces(file_size / regular_file::piece_length);
+            const size_t size = static_cast<size_t>(file_size / regular_file::piece_length);
+            std::vector<blob_hash_code> pieces(size);
             std::byte const *cursor = std::get<1>(*header);
             for (size_t i = 0; i < pieces.size(); ++i)
             {
@@ -258,7 +259,7 @@ namespace dogbox::fuse
             fuse_context &fuse = *fuse_get_context();
             user_data &user = *static_cast<user_data *>(fuse.private_data);
             assert(file->fh < user.files.size());
-            open_file &opened = *user.files[file->fh];
+            open_file &opened = *user.files[static_cast<size_t>(file->fh)];
             if (!opened.index)
             {
                 opened.index = load_regular_file_index(user.database, opened.hash_code);
@@ -269,7 +270,7 @@ namespace dogbox::fuse
             std::byte *write_cursor = reinterpret_cast<std::byte *>(into);
             while (remaining_size > 0)
             {
-                size_t const current_piece_index = (read_cursor / regular_file::piece_length);
+                size_t const current_piece_index = static_cast<size_t>(read_cursor / regular_file::piece_length);
                 std::vector<std::byte> *piece = nullptr;
                 std::optional<std::vector<std::byte>> loaded_piece;
                 if (current_piece_index < opened.index->pieces.size())

@@ -29,7 +29,6 @@ add_definitions(
     -Wshadow
     -fstrict-aliasing
     -Wformat=2
-    -Wuseless-cast
     -pedantic
     -Werror
     -Wconversion

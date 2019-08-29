@@ -35,7 +35,7 @@ namespace dogbox
         file.seekg(0, std::ios::beg);
         auto const size = (at_end - at_beginning);
         std::vector<std::byte> content(static_cast<size_t>(size));
-        file.read(reinterpret_cast<char *>(content.data()), size);
+        file.read(reinterpret_cast<char *>(content.data()), static_cast<int>(size));
         if (!file)
         {
             TO_DO();

@@ -59,7 +59,7 @@ static void benchmark_import_directory(benchmark::State &state, dogbox::import::
     dogbox::directory_auto_deleter const imported_dir_deleter{imported_dir};
     std::filesystem::create_directory(imported_dir);
     size_t const total_file_size = 200 * 1000 * 1000;
-    size_t const number_of_files = state.range(0);
+    size_t const number_of_files = static_cast<size_t>(state.range(0));
     size_t const file_size = (total_file_size / number_of_files);
     for (size_t i = 0; i < number_of_files; ++i)
     {
@@ -71,7 +71,7 @@ static void benchmark_import_directory(benchmark::State &state, dogbox::import::
         dogbox::initialize_blob_storage(*database);
         dogbox::import::from_filesystem_directory(*database, imported_dir, parallel);
     }
-    state.SetBytesProcessed(state.iterations() * total_file_size);
+    state.SetBytesProcessed(static_cast<size_t>(state.iterations() * total_file_size));
 }
 
 static void benchmark_import_directory_sequential(benchmark::State &state)
@@ -89,14 +89,14 @@ BENCHMARK(benchmark_import_directory_parallel)->Unit(benchmark::kMillisecond)->R
 
 static void benchmark_create_random_file(benchmark::State &state)
 {
-    uint64_t const size = state.range(0);
+    uint64_t const size = static_cast<size_t>(state.range(0));
     std::filesystem::path const file = "/tmp/dogbox_benchmark_random_file";
     for (auto _ : state)
     {
         dogbox::create_random_file(file, size);
         std::filesystem::remove(file);
     }
-    state.SetBytesProcessed(state.iterations() * size);
+    state.SetBytesProcessed(static_cast<size_t>(state.iterations() * size));
 }
 
 BENCHMARK(benchmark_create_random_file)->Unit(benchmark::kMillisecond)->Range(100 * 1024, 10 * 1024 * 1024);

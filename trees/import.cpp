@@ -115,7 +115,7 @@ namespace dogbox::import
         }
         std::vector<std::byte> encoded;
         regular_file::start_encoding(size, std::back_inserter(encoded));
-        size_t const number_of_pieces = (size / regular_file::piece_length);
+        size_t const number_of_pieces = static_cast<size_t>(size / regular_file::piece_length);
         uint64_t const remaining_size = (size - (number_of_pieces * regular_file::piece_length));
         size_t concurrency = std::thread::hardware_concurrency();
         switch (parallel)
@@ -147,9 +147,9 @@ namespace dogbox::import
             }
         }
 
-        std::vector<std::byte> piece_buffer(remaining_size);
+        std::vector<std::byte> piece_buffer(static_cast<size_t>(remaining_size));
         read_at(file.handle, number_of_pieces * regular_file::piece_length, piece_buffer.data(), piece_buffer.size());
-        regular_file::finish_encoding(piece_buffer.data(), remaining_size, std::back_inserter(encoded));
+        regular_file::finish_encoding(piece_buffer.data(), static_cast<size_t>(remaining_size), std::back_inserter(encoded));
         return store_blob(database, encoded.data(), encoded.size());
     }
 }
